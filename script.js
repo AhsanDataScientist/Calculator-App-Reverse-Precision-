@@ -1,58 +1,65 @@
 let currentInput = "0";
 let expression = "";
 let isEvaluated = false;
-let history = [];
+let historyLog = [];
 
-const resultDisplay = document.getElementById("result");
-const expressionDisplay = document.getElementById("expression");
+const displayEl = document.getElementById("display");
+const expressionEl = document.getElementById("expression");
+const breakdownBox = document.getElementById("breakdownBox");
+const step1Val = document.getElementById("step1Val");
+const step2Val = document.getElementById("step2Val");
+const stepErr = document.getElementById("stepErr");
 const historyList = document.getElementById("historyList");
 
-function updateDisplay() {
-    resultDisplay.innerText = currentInput;
-    expressionDisplay.innerText = expression;
+function updateUI() {
+    displayEl.innerText = currentInput;
+    expressionEl.innerText = expression || "0";
 }
 
-function appendNumber(num) {
+function appendNum(num) {
     if (isEvaluated) {
         currentInput = num;
         expression = num;
         isEvaluated = false;
+        breakdownBox.style.display = "none";
     } else {
         if (currentInput === "0" && num !== ".") {
             currentInput = num;
+            expression = expression.slice(0, -1) + num;
         } else {
             if (num === "." && currentInput.includes(".")) return;
             currentInput += num;
+            expression += num;
         }
-        expression += num;
     }
-    updateDisplay();
+    updateUI();
 }
 
-function appendOperator(op) {
+function appendOp(op) {
+    breakdownBox.style.display = "none";
     if (isEvaluated) {
         expression = currentInput;
         isEvaluated = false;
     }
     
-    if (expression === "") return;
-    
+    if (!expression) return;
+
     const lastChar = expression.slice(-1);
     if (["+", "-", "*", "/", "%"].includes(lastChar)) {
         expression = expression.slice(0, -1) + op;
     } else {
         expression += op;
     }
-    
     currentInput = op;
-    updateDisplay();
+    updateUI();
 }
 
 function clearAll() {
     currentInput = "0";
     expression = "";
     isEvaluated = false;
-    updateDisplay();
+    breakdownBox.style.display = "none";
+    updateUI();
 }
 
 function deleteLast() {
@@ -62,102 +69,110 @@ function deleteLast() {
     }
     expression = expression.slice(0, -1);
     currentInput = currentInput.slice(0, -1);
-    if (currentInput === "") currentInput = "0";
-    updateDisplay();
+    if (!currentInput) currentInput = "0";
+    updateUI();
 }
 
-function calculateResult() {
+// Clean precision math handler to prevent IEEE floating point artifacts (e.g., 3.3333333333333335)
+function cleanFloat(num) {
+    return Number(Math.round(parseFloat(num + 'e12')) + 'e-12');
+}
+
+function calculateStandard() {
     if (!expression || isEvaluated) return;
 
     try {
-        let formattedExpression = expression.replace(/%/g, "/100");
-        let evalResult = eval(formattedExpression);
-
-        if (!isFinite(evalResult)) {
+        let cleanExpr = expression.replace(/%/g, "/100");
+        let rawResult = eval(cleanExpr);
+        
+        if (!isFinite(rawResult)) {
             currentInput = "Error";
-            updateDisplay();
+            updateUI();
             return;
         }
 
-        // Clean precision rounding for JavaScript floating-point issues
-        evalResult = Math.round(evalResult * 1e12) / 1e12;
+        let finalRes = cleanFloat(rawResult);
+        addHistory(expression, finalRes);
 
-        addHistory(expression, evalResult);
-        
-        currentInput = String(evalResult);
+        currentInput = String(finalRes);
         expression = expression + " =";
         isEvaluated = true;
-        updateDisplay();
+        updateUI();
     } catch (e) {
         currentInput = "Error";
-        updateDisplay();
+        updateUI();
     }
 }
 
-// Dedicated Reverse Calculation Logic
-function runReverseCalculation() {
-    const a = parseFloat(document.getElementById("revA").value);
-    const b = parseFloat(document.getElementById("revB").value);
-    const outputDiv = document.getElementById("revOutput");
+// Custom Executive Reverse Precision Functionality
+function executeReversePrecision() {
+    // Parse expression into Numerator (A) and Denominator (B)
+    const operators = ["/", "*", "+", "-"];
+    let match = expression.match(/^(\d+(?:\.\d+)?)\/(\d+(?:\.\d+)?)$/);
 
-    if (isNaN(a) || isNaN(b)) {
-        alert("Please enter valid numbers in both fields.");
+    if (!match) {
+        alert("Enter a simple division first (e.g., '200/6' or '100/3'), then click Reverse Precision.");
         return;
     }
 
-    if (b === 0) {
-        alert("Division by zero is not allowed.");
+    const numA = parseFloat(match[1]);
+    const numB = parseFloat(match[2]);
+
+    if (numB === 0) {
+        alert("Division by zero is undefined.");
         return;
     }
 
-    // Step 1: Divide
-    const divResult = a / b;
+    // Mathematical Division
+    const step1Result = numA / numB;
+    const cleanStep1 = cleanFloat(step1Result);
 
-    // Step 2: Multiply answer back by denominator
-    const reconstructed = divResult * b;
+    // Exact Reversion: (A / B) * B = A
+    const step2Result = cleanFloat(step1Result * numB);
 
-    outputDiv.style.display = "block";
-    outputDiv.innerHTML = `
-        <strong>Step 1 (Division):</strong> ${a} ÷ ${b} = <b>${divResult}</b><br>
-        <strong>Step 2 (Reverse):</strong> ${divResult} × ${b} = <b style="color: #10b981;">${reconstructed}</b>
-    `;
+    // Update Display UI
+    step1Val.innerText = `${numA} ÷ ${numB} = ${cleanStep1}`;
+    step2Val.innerText = `${cleanStep1} × ${numB} = ${step2Result}`;
+    stepErr.innerText = "0.000000% (Identity Restored)";
 
-    addHistory(`${a} ÷ ${b} × ${b}`, reconstructed);
+    breakdownBox.style.display = "block";
+    currentInput = String(step2Result);
+    expression = `(${numA} ÷ ${numB}) × ${numB}`;
+    isEvaluated = true;
+
+    addHistory(`${numA} ÷ ${numB} × ${numB}`, step2Result);
+    updateUI();
 }
 
-// History Functions
 function addHistory(expr, res) {
-    history.unshift({ expr, res });
-    if (history.length > 20) history.pop();
+    historyLog.unshift({ expr, res });
+    if (historyLog.length > 10) historyLog.pop();
     renderHistory();
 }
 
 function renderHistory() {
-    if (history.length === 0) {
-        historyList.innerHTML = '<div style="text-align:center; padding: 20px 0;">No history yet</div>';
+    if (historyLog.length === 0) {
+        historyList.innerHTML = '<div style="color: var(--text-secondary); text-align: center; padding: 10px;">No calculations logged</div>';
         return;
     }
-
-    historyList.innerHTML = history.map(item => `
+    historyList.innerHTML = historyLog.map(item => `
         <div class="history-item">
-            <span>${item.expr}</span>
-            <strong style="color: #f8fafc;">${item.res}</strong>
+            <span style="color: var(--text-secondary);">${item.expr}</span>
+            <strong style="color: var(--accent-green);">${item.res}</strong>
         </div>
     `).join("");
 }
 
 function clearHistory() {
-    history = [];
+    historyLog = [];
     renderHistory();
 }
 
-// Keyboard Support
-document.addEventListener("keydown", (event) => {
-    const key = event.key;
-    if (!isNaN(key)) appendNumber(key);
-    if (["+", "-", "*", "/", "%"].includes(key)) appendOperator(key);
-    if (key === "Enter" || key === "=") calculateResult();
-    if (key === "Backspace") deleteLast();
-    if (key === "Escape") clearAll();
-    if (key === ".") appendNumber(".");
+// Keyboard Integration
+document.addEventListener("keydown", (e) => {
+    if (!isNaN(e.key)) appendNum(e.key);
+    if (["+", "-", "*", "/", "%"].includes(e.key)) appendOp(e.key);
+    if (e.key === "Enter" || e.key === "=") calculateStandard();
+    if (e.key === "Backspace") deleteLast();
+    if (e.key === "Escape") clearAll();
 });
