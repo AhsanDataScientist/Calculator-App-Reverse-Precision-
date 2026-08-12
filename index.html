@@ -1,0 +1,290 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Pro Precision Calculator</title>
+    <style>
+        :root {
+            --bg-color: #0f172a;
+            --card-bg: #1e293b;
+            --display-bg: #0f172a;
+            --text-main: #f8fafc;
+            --text-sub: #94a3b8;
+            --btn-num: #334155;
+            --btn-num-hover: #475569;
+            --btn-op: #3b82f6;
+            --btn-op-hover: #2563eb;
+            --btn-action: #e11d48;
+            --btn-action-hover: #be123c;
+            --btn-special: #0d9488;
+            --btn-special-hover: #0f766e;
+            --accent: #10b981;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-main);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            margin: 0;
+            padding: 20px;
+            box-sizing: border-box;
+        }
+
+        .container {
+            display: flex;
+            gap: 20px;
+            max-width: 850px;
+            width: 100%;
+            flex-wrap: wrap;
+        }
+
+        .calculator {
+            background: var(--card-bg);
+            border-radius: 20px;
+            padding: 25px;
+            box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.5), 0 8px 10px -6px rgba(0, 0, 0, 0.5);
+            flex: 1;
+            min-width: 320px;
+        }
+
+        .display {
+            background: var(--display-bg);
+            border-radius: 12px;
+            padding: 15px 20px;
+            text-align: right;
+            margin-bottom: 20px;
+            border: 1px solid #334155;
+        }
+
+        .display .expression {
+            color: var(--text-sub);
+            font-size: 0.9rem;
+            min-height: 20px;
+            word-wrap: break-word;
+        }
+
+        .display .result {
+            color: var(--text-main);
+            font-size: 2.2rem;
+            font-weight: bold;
+            min-height: 48px;
+            word-wrap: break-word;
+            margin-top: 5px;
+        }
+
+        .grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 12px;
+        }
+
+        button {
+            border: none;
+            outline: none;
+            padding: 18px;
+            font-size: 1.2rem;
+            font-weight: 600;
+            border-radius: 12px;
+            cursor: pointer;
+            transition: all 0.15s ease;
+            color: var(--text-main);
+            background-color: var(--btn-num);
+        }
+
+        button:hover {
+            background-color: var(--btn-num-hover);
+            transform: translateY(-2px);
+        }
+
+        button:active {
+            transform: translateY(0);
+        }
+
+        .btn-operator {
+            background-color: var(--btn-op);
+        }
+        .btn-operator:hover {
+            background-color: var(--btn-op-hover);
+        }
+
+        .btn-clear {
+            background-color: var(--btn-action);
+        }
+        .btn-clear:hover {
+            background-color: var(--btn-action-hover);
+        }
+
+        .btn-special {
+            background-color: var(--btn-special);
+        }
+        .btn-special:hover {
+            background-color: var(--btn-special-hover);
+        }
+
+        .btn-wide {
+            grid-column: span 2;
+        }
+
+        /* Sidebar Panels */
+        .sidebar {
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+            flex: 1;
+            min-width: 280px;
+        }
+
+        .panel {
+            background: var(--card-bg);
+            border-radius: 20px;
+            padding: 20px;
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.3);
+            border: 1px solid #334155;
+        }
+
+        .panel h3 {
+            margin-top: 0;
+            margin-bottom: 15px;
+            font-size: 1.1rem;
+            color: var(--text-main);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .panel p {
+            font-size: 0.85rem;
+            color: var(--text-sub);
+            margin-top: 0;
+            margin-bottom: 15px;
+        }
+
+        .rev-inputs {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 15px;
+        }
+
+        .rev-inputs input {
+            width: 50%;
+            padding: 10px;
+            background: var(--display-bg);
+            border: 1px solid #334155;
+            border-radius: 8px;
+            color: var(--text-main);
+            font-size: 1rem;
+            box-sizing: border-box;
+        }
+
+        .rev-output {
+            background: var(--display-bg);
+            padding: 12px;
+            border-radius: 8px;
+            font-size: 0.9rem;
+            border-left: 4px solid var(--accent);
+            display: none;
+        }
+
+        .history-list {
+            max-height: 180px;
+            overflow-y: auto;
+            font-size: 0.9rem;
+            color: var(--text-sub);
+        }
+
+        .history-item {
+            padding: 8px 0;
+            border-bottom: 1px solid #334155;
+            display: flex;
+            justify-content: space-between;
+        }
+
+        .history-item:last-child {
+            border-bottom: none;
+        }
+
+        .clear-history-btn {
+            background: transparent;
+            color: var(--text-sub);
+            font-size: 0.8rem;
+            padding: 4px 8px;
+            border-radius: 4px;
+        }
+
+        .clear-history-btn:hover {
+            background: var(--btn-num);
+            color: var(--text-main);
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <!-- Main Calculator -->
+    <div class="calculator">
+        <div class="display">
+            <div class="expression" id="expression"></div>
+            <div class="result" id="result">0</div>
+        </div>
+        <div class="grid">
+            <button class="btn-clear" onclick="clearAll()">AC</button>
+            <button onclick="deleteLast()">DEL</button>
+            <button onclick="appendOperator('%')">%</button>
+            <button class="btn-operator" onclick="appendOperator('/')">÷</button>
+
+            <button onclick="appendNumber('7')">7</button>
+            <button onclick="appendNumber('8')">8</button>
+            <button onclick="appendNumber('9')">9</button>
+            <button class="btn-operator" onclick="appendOperator('*')">×</button>
+
+            <button onclick="appendNumber('4')">4</button>
+            <button onclick="appendNumber('5')">5</button>
+            <button onclick="appendNumber('6')">6</button>
+            <button class="btn-operator" onclick="appendOperator('-')">-</button>
+
+            <button onclick="appendNumber('1')">1</button>
+            <button onclick="appendNumber('2')">2</button>
+            <button onclick="appendNumber('3')">3</button>
+            <button class="btn-operator" onclick="appendOperator('+')">+</button>
+
+            <button onclick="appendNumber('0')">0</button>
+            <button onclick="appendNumber('.')">.</button>
+            <button class="btn-operator btn-wide" onclick="calculateResult()">=</button>
+        </div>
+    </div>
+
+    <!-- Side Tools -->
+    <div class="sidebar">
+        <!-- Reverse Precision Tool Panel -->
+        <div class="panel">
+            <h3>Reverse Precision Tool</h3>
+            <p>Divide number A by B, then automatically multiply back by B to verify exact identity restoration.</p>
+            <div class="rev-inputs">
+                <input type="number" id="revA" placeholder="Number A (100)">
+                <input type="number" id="revB" placeholder="Number B (3)">
+            </div>
+            <button class="btn-special" style="width:100%" onclick="runReverseCalculation()">Run Verification</button>
+            <div class="rev-output" id="revOutput"></div>
+        </div>
+
+        <!-- History Panel -->
+        <div class="panel">
+            <h3>
+                History
+                <button class="clear-history-btn" onclick="clearHistory()">Clear</button>
+            </h3>
+            <div class="history-list" id="historyList">
+                <div style="text-align:center; padding: 20px 0;">No history yet</div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script src="script.js"></script>
+</body>
+</html>
